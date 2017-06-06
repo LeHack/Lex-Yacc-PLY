@@ -55,7 +55,18 @@ dkms.conf
 # Eclipse
 .cproject
 .project
+.pydevproject
 .settings
 
 # Other
 *.tar.bz2
+
+# Virtual env
+bin/
+include/
+lib/
+pip-selfcheck.json
+
+# Python
+__pycache__
+parsetab.py

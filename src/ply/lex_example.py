@@ -32,6 +32,18 @@ class DelayedActions:
                 DelayedActions.resolve(self.params[1])
             elif len(self.params) > 2:
                 DelayedActions.resolve(self.params[2])
+        elif self.action == 'logop':
+            params = list(self.params)
+            result = DelayedActions.resolve(params.pop())
+            while len(params) >= 2:
+                op   = DelayedActions.resolve(params.pop())
+                comp = DelayedActions.resolve(params.pop())
+                debug("[LOGOP]", result, op, comp)
+                result = {
+                    'AND': lambda a, b: (a and b),
+                    'OR':  lambda a, b: (a or b),
+                }[op](result, comp)
+
         elif self.action == 'binop':
             a = DelayedActions.resolve(self.params[0])
             b = DelayedActions.resolve(self.params[2])
@@ -49,6 +61,8 @@ class DelayedActions:
                 '==': lambda a, b: (a == b),
                 '!=': lambda a, b: (a != b),
             }[self.params[1]](a, b)
+        else:
+            print("Error, unsupported operation:", str(self))
 
         debug('Resolving', str(self), result)
         return result
@@ -88,10 +102,12 @@ tokens = (
 reserved = {
     'print': 'PRINT',
     'range': 'RANGE',
-    'if': 'IF',
-    'else': 'ELSE',
-    'for': 'FOR',
-    'in': 'IN',
+    'if':    'IF',
+    'else':  'ELSE',
+    'for':   'FOR',
+    'in':    'IN',
+    'and':   'AND',
+    'or':    'OR',
 }
 
 # List of single character literals
@@ -112,24 +128,26 @@ specials_sc = {
 
 # List of multi character literals
 specials_mc = {
-    '>=': 'GE',
-    '<=': 'LE',
-    '==': 'EQ',
-    '!=': 'NE',
-    '**': 'POW',
+    '>=':  'GE',
+    '<=':  'LE',
+    '==':  'EQ',
+    '!=':  'NE',
+    '**':  'POW',
 }
 
 precedence = (
+    ('left', 'COLON'),
+    ('left', 'AND', 'OR'),
     ('left', 'LT', 'LE', 'GT', 'GE', 'EQ', 'NE'),
-    ('left', 'MOD'),
-    ('left', 'ADD', 'REM'),
+    ('left', 'REM', 'ADD', 'MOD'),
     ('left', 'MUL', 'DIV'),
     ('left', 'POW'),
-    ('right', 'UMINUS'),
+    ('right', 'NEGATE'),
+    ('left', 'IFX'),
 )
 
 tokens = list(tokens) + list(reserved.values()) \
-    + list(specials_sc.values())  + list(specials_mc.values())
+    + list(specials_mc.values()) + list(specials_sc.values())
 specials_sc_re = '[' + re.escape(''.join(specials_sc.keys())) + ']'
 specials_mc_re = '(' + '|'.join(re.escape(x) for x in specials_mc.keys()) + ')'
 
@@ -217,31 +235,33 @@ lexer = lex.lex()
 
 
 def p_program(p):
-    '''program : program statement
-               | empty
+    'program : function'
+    debug('PROGRAM', p[1])
+    p[0] = p[1]
+
+
+def p_function(p):
+    '''function : function statement
+                | empty
     '''
+    debug('FUNCTION', p[1:])
     if len(p) > 2:
         p[0] = DelayedActions.resolve(p[2])
 
 
 def p_statement_none(p):
     'statement : SEMI'
-    pass
+    debug('EMPTY STMT')
 
 
 def p_statement_expr(p):
-    'statement : expression SEMI'
+    '''statement : expression SEMI'''
+    debug('STMT', p[1:])
     p[0] = p[1]
 
 
-def p_statement_for(p):
-    'statement : FOR ID IN statement COLON statement SEMI'
-    debug('FOR', p[1:])
-    p[0] = DelayedActions(action='loop', params=[p[2], p[4], p[6]])
-
-
 def p_statement_print(p):
-    'statement : PRINT LPAREN expr_list RPAREN'
+    'statement : PRINT LPAREN expr_list RPAREN SEMI'
     debug('PRINT', p[3])
     p[0] = DelayedActions(action='print', params=p[3])
 
@@ -252,9 +272,33 @@ def p_statement_range(p):
     p[0] = list(range(p[3][0], p[3][1]))
 
 
+def p_statement_assign(p):
+    'statement : ID ASSIGN expression SEMI'
+    debug('ASSIGN', p[1], p[3])
+    p[0] = DelayedActions(action='assign', params=[p[1], p[3]])
+
+
+def p_statement_for(p):
+    'statement : FOR ID IN statement COLON statement'
+    debug('FOR', p[1:])
+    p[0] = DelayedActions(action='loop', params=[p[2], p[4], p[6]])
+
+
+def p_statement_cond(p):
+    'statement : IF condition_list COLON statement %prec IFX'
+    debug("IF", str(p[2]), str(p[4]))
+    p[0] = DelayedActions(action='condition', params=[p[2], p[4]])
+
+
+# def p_statement_cond_postfix_else(p):
+#     'statement : statement IF condition_list ELSE statement'
+#     debug("PSTFX IF-ELSE", p[1:])
+#     p[0] = DelayedActions(action='condition', params=[p[3], p[1], p[5]])
+
+
 def p_expression_list(p):
-    '''expr_list : expr_list COMMA expression
-                 | expression
+    '''expr_list : expression
+                 | expr_list COMMA expression
     '''
     debug('EXPR_LIST', p[1:])
     if len(p) <= 3:
@@ -263,28 +307,24 @@ def p_expression_list(p):
         p[0] = p[1] + [p[3]]
 
 
-def p_statement_assign(p):
-    'statement : ID ASSIGN expression SEMI'
-    debug('ASSIGN', p[1], p[3])
-    p[0] = DelayedActions(action='assign', params=[p[1], p[3]])
+def p_condition_list(p):
+    '''condition_list : expression
+                      | condition_list logop expression
+    '''
+    debug('CONDITION', p[1])
+    if len(p) > 2:
+        p[0] = DelayedActions(action='logop', params=p[1:])
+    else:
+        p[0] = p[1]
 
 
-def p_statement_cond_postfix_else(p):
-    'statement : statement IF expression ELSE statement SEMI'
-    debug("PSTFX IF-ELSE", p[1:])
-    p[0] = DelayedActions(action='condition', params=[p[3], p[1], p[5]])
-
-
-def p_statement_cond_postfix(p):
-    'statement : statement IF expression SEMI'
-    debug("PSTFX IF", p[1:])
-    p[0] = DelayedActions(action='condition', params=[p[3], p[1]])
-
-
-def p_statement_cond(p):
-    'statement : IF expression COLON statement SEMI'
-    debug("IF", p[1:])
-    p[0] = DelayedActions(action='condition', params=[p[2], p[4]])
+def p_condition_op(p):
+    '''logop : AND
+             | OR
+    '''
+    debug('LOGOP', p[1])
+    # p[0] = variables.get(p[1], 0)
+    p[0] = p[1].upper()
 
 
 def p_expression_var(p):
@@ -307,9 +347,9 @@ def p_expression_string(p):
 
 
 def p_expression_uminus(p):
-    'expression : REM expression %prec UMINUS'
+    'expression : REM expression %prec NEGATE'
     debug('NEGATE', p[2])
-    p[0] = -p[2]
+    p[0] = DelayedActions(action='binop', params=[-1, '*', p[2]])
 
 
 def p_expression_binop(p):
@@ -326,7 +366,7 @@ def p_expression_binop(p):
                    | expression EQ expression
                    | expression NE expression
     '''
-    debug('COUNT', p[1:])
+    debug('BINOP', p[1:])
     p[0] = DelayedActions(action='binop', params=p[1:])
 
 
@@ -350,30 +390,9 @@ def p_empty(p):
 parser = yacc.yacc()
 
 # Test it out
-# f = open('input_code.py', 'r')
-# data = f.read()
-# f.close()
-
-data = '''
-x = 2 ** 8 + (-1 - 6) * 8
-x = x + 5
-t1 = x < 5
-print(10, x + 5)
-print('x =', x)
-print('x + 5 =', x + 5)
-print('x % 100 =', x % 100)
-print('x == 205 is', x == 205, '; x != 210 is', x != 210,'; x < 5 is', t1)
-print("Test", 'def', 1)
-print("Here you see x") if x > 10
-print("Here you don't") if x < 10
-for i in range(1, 10): print("i =", i * 2)
-x + 2
-'''
-
-# if t1: print(1)
-# if x < 10: x = 11
-# x = 15 if x < 10 else print("Test 2")
-
+f = open('input_code.py', 'r')
+data = f.read()
+f.close()
 
 # Now parse the whole thing
 print('Statement value:', parser.parse(data))

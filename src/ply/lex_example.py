@@ -29,9 +29,9 @@ class DelayedActions:
                 self.params[2].execute()
         elif self.action == 'condition':
             if DelayedActions.resolve(self.params[0]):
-                DelayedActions.resolve(self.params[1])
+                result = DelayedActions.resolve(self.params[1])
             elif len(self.params) > 2:
-                DelayedActions.resolve(self.params[2])
+                result = DelayedActions.resolve(self.params[2])
         elif self.action == 'logop':
             params = list(self.params)
             result = DelayedActions.resolve(params.pop())
@@ -136,7 +136,7 @@ specials_mc = {
 }
 
 precedence = (
-    ('left', 'COLON'),
+    ('nonassoc', 'ELSE'),
     ('left', 'AND', 'OR'),
     ('left', 'LT', 'LE', 'GT', 'GE', 'EQ', 'NE'),
     ('left', 'REM', 'ADD', 'MOD'),
@@ -242,6 +242,7 @@ def p_program(p):
 
 def p_function(p):
     '''function : function statement
+                | function line_statement
                 | empty
     '''
     debug('FUNCTION', p[1:])
@@ -250,18 +251,18 @@ def p_function(p):
 
 
 def p_statement_none(p):
-    'statement : SEMI'
+    'line_statement : SEMI'
     debug('EMPTY STMT')
 
 
 def p_statement_expr(p):
-    '''statement : expression SEMI'''
+    'line_statement : expression SEMI'
     debug('STMT', p[1:])
     p[0] = p[1]
 
 
 def p_statement_print(p):
-    'statement : PRINT LPAREN expr_list RPAREN SEMI'
+    'statement : PRINT LPAREN expr_list RPAREN'
     debug('PRINT', p[3])
     p[0] = DelayedActions(action='print', params=p[3])
 
@@ -273,27 +274,35 @@ def p_statement_range(p):
 
 
 def p_statement_assign(p):
-    'statement : ID ASSIGN expression SEMI'
+    'line_statement : ID ASSIGN expression SEMI'
     debug('ASSIGN', p[1], p[3])
     p[0] = DelayedActions(action='assign', params=[p[1], p[3]])
 
 
 def p_statement_for(p):
-    'statement : FOR ID IN statement COLON statement'
+    'line_statement : FOR ID IN statement COLON statement SEMI'
     debug('FOR', p[1:])
     p[0] = DelayedActions(action='loop', params=[p[2], p[4], p[6]])
 
 
+def p_statement_cond_postfix_else(p):
+    'line_statement : statement IF condition_list ELSE statement SEMI'
+    debug("PSTFX IF-ELSE", p[1:])
+    p[0] = DelayedActions(action='condition', params=[p[3], p[1], p[5]])
+
+
+def p_statement_cond_postfix_assign(p):
+    'line_statement : ID ASSIGN expression IF condition_list ELSE expression SEMI'
+    debug("PSTFX IF-ELSE-ASSIGN", p[1:])
+    p[0] = DelayedActions(action='assign', params=[
+        p[1], DelayedActions(action='condition', params=[p[5], p[3], p[7]])
+    ])
+
+
 def p_statement_cond(p):
-    'statement : IF condition_list COLON statement %prec IFX'
+    'line_statement : IF condition_list COLON statement SEMI %prec IFX'
     debug("IF", str(p[2]), str(p[4]))
     p[0] = DelayedActions(action='condition', params=[p[2], p[4]])
-
-
-# def p_statement_cond_postfix_else(p):
-#     'statement : statement IF condition_list ELSE statement'
-#     debug("PSTFX IF-ELSE", p[1:])
-#     p[0] = DelayedActions(action='condition', params=[p[3], p[1], p[5]])
 
 
 def p_expression_list(p):

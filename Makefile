@@ -3,7 +3,7 @@ CC=cc
 YACC=yacc
 LEX=lex
 SRC=src
-ODIR=bin
+ODIR=output
 
 CFLAGS=-I$(SRC)/calc3 -I$(ODIR)
 LIBS=

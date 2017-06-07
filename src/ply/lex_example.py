@@ -8,11 +8,8 @@ from ply.lex import TOKEN
 tokens = (
     'NUMBER',
     'ID',
-    'GE',
-    'LE',
-    'EQ',
-    'POW',
-    'SPECIAL'
+    'SPECIAL',
+    'SEMI'
 )
 
 reserved = {
@@ -25,8 +22,8 @@ reserved = {
     'continue': 'CONTINUE'
 }
 
-# List of literals
-specials = {
+# List of single character literals
+specials_sc = {
     '+':    'ADD',
     '-':    'REM',
     '*':    'MUL',
@@ -45,15 +42,26 @@ specials = {
     ':':    'COLON',
 }
 
+# List of multi character literals
+specials_mc = {
+    '>=': 'GE',
+    '<=': 'LE',
+    '==': 'EQ',
+    '**': 'POW',
+}
+
 precedence = (
+    ('nonassoc', 'LT', 'LE', 'GT', 'GE', 'EQ'),
     ('left', 'ADD', 'REM'),
     ('left', 'MUL', 'DIV'),
     ('left', 'POW'),
     ('right', 'UMINUS'),
 )
 
-tokens = list(tokens) + list(reserved.values()) + list(specials.values())
-specials_re = '[' + re.escape(''.join(specials.keys())) + ']'
+tokens = list(tokens) + list(reserved.values()) \
+    + list(specials_sc.values())  + list(specials_mc.values())
+specials_sc_re = '[' + re.escape(''.join(specials_sc.keys())) + ']'
+specials_mc_re = '(' + '|'.join(re.escape(x) for x in specials_mc.keys()) + ')'
 
 
 def t_ID(t):
@@ -71,9 +79,12 @@ def t_NUMBER(t):
 
 
 # Define a rule so we can track line numbers
-def t_newline(t):
-    r'\n+'
+def t_SEMI(t):
+    r'\n+|;+'
     t.lexer.lineno += len(t.value)
+    t.type = 'SEMI'
+    # t.value = ';'
+    return t
 
 
 def t_COMMENT(t):
@@ -88,19 +99,20 @@ def t_POW(t):
     return t
 
 
-@TOKEN(specials_re)
-def t_SPECIAL(t):
-    t.type = specials.get(t.value, 'SPECIAL')
+@TOKEN(specials_mc_re)
+def t_SPECIAL_MC(t):
+    t.type = specials_mc.get(t.value, 'SPECIAL')
+    return t
+
+
+@TOKEN(specials_sc_re)
+def t_SPECIAL_SC(t):
+    t.type = specials_sc.get(t.value, 'SPECIAL')
     return t
 
 
 # A string containing ignored characters (spaces and tabs)
 t_ignore  = ' \t'
-
-# Regular expression rules for basic tokens
-t_GE  = r'>='
-t_LE  = r'<='
-t_EQ  = r'=='
 
 
 # Error handling rule
@@ -114,25 +126,48 @@ lexer = lex.lex()
 variables = {}
 
 
-def p_statement_assign(p):
-    'statement : ID ASSIGN expression'
-    variables[p[0]] = p[1]
-
-
-def p_statement_expr(p):
-    'statement : expression'
-    p[0] = p[1]
-#    print('Statement value:', p[1])
-
-
-def p_expression_plus(p):
+def p_statement_list(p):
+    '''stmt_list : stmt_list statement SEMI
+                 | SEMI
+                 | empty
     '''
-        expression  : expression ADD expression
-                    | expression REM expression
-                    | expression MUL expression
-                    | expression DIV expression
-                    | expression POW expression
+    if len(p) > 2:
+        print('LIST', p[1], p[2])
+        p[0] = p[2]
+
+
+def p_statement(p):
+    '''statement : expression
+                 | ID ASSIGN expression
     '''
+    if len(p) > 2:
+        print('ASSIGN', p[1], p[3])
+        variables[p[1]] = p[3]
+        p[0] = p[3]
+    else:
+        p[0] = p[1]
+
+
+def p_expression_num(p):
+    'expression : NUMBER'
+    print('NUMBER', p[1])
+    p[0] = int(p[1])
+
+
+def p_expression_uminus(p):
+    'expression : REM expression %prec UMINUS'
+    print('NEGATE', p[2])
+    p[0] = -p[2]
+
+
+def p_expression_count(p):
+    '''expression  : expression ADD expression
+                   | expression REM expression
+                   | expression MUL expression
+                   | expression DIV expression
+                   | expression POW expression
+    '''
+    print('COUNT', p[1], p[2], p[3])
     p[0] = {
         '+': lambda x: x[1] + x[3],
         '-': lambda x: x[1] - x[3],
@@ -142,38 +177,69 @@ def p_expression_plus(p):
     }[p[2]](p)
 
 
-def p_expression_num(p):
-    'expression : NUMBER'
-    p[0] = p[1]
-
-
-def p_expression_var(p):
-    'expression : ID'
-    p[0] = variables[p[1]]
+def p_expression_logic(p):
+    '''expression  : expression GT expression
+                   | expression GE expression
+                   | expression LT expression
+                   | expression LE expression
+                   | expression EQ expression
+    '''
+    print('LOGIC', p[1], p[2], p[3])
+    p[0] = {
+        '>':  lambda x: x[1] > x[3],
+        '>=': lambda x: x[1] >= x[3],
+        '<':  lambda x: x[1] < x[3],
+        '<=': lambda x: x[1] <= x[3],
+        '==': lambda x: x[1] == x[3],
+    }[p[2]](p)
 
 
 def p_expression_parens(p):
     'expression : LPAREN expression RPAREN'
+    print('PARENS', p[2])
     p[0] = p[2]
 
 
-def p_expression_uminus(p):
-    'expression : REM expression %prec UMINUS'
-    p[0] = -p[2]
+def p_expression_var(p):
+    'expression : ID'
+    print('VAR', p[1])
+    p[0] = variables.get(p[1], 0)
 
 
 # Error rule for syntax errors
 def p_error(p):
-    print("Syntax error in input! ", p)
+    print("Syntax error in input!", p)
+
+
+def p_empty(p):
+    'empty :'
+    pass
 
 
 # Build the parser
-parser = yacc.yacc()
+parser = yacc.yacc(debug=True)
 
 # Test it out
 f = open('input_code.py', 'r')
 data = f.read()
 f.close()
 
+data = '''
+x = 2 ** 8 + (-1 - 6) * 8
+x = x + 5
+t1 = x > 5
+t2 = (x < 300)
+t3 = (x >= 200)
+t4 = (x >= 205)
+t5 = (x >= 210)
+t6 = (x <= 205)
+t7 = (x <= 210)
+t8 = (x <= 200)
+t9 = (x == 205)
+x + 10
+'''
+
+
 # Now parse the whole thing
-print('Statement value:', parser.parse("2 ** 8 + (-1 - 6)*8"))
+print('Statement value:', parser.parse(data))
+print(repr(variables))

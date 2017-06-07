@@ -3,23 +3,38 @@ import ply.yacc as yacc
 import re
 from ply.lex import TOKEN
 
+DEBUG_MODE = False
+
+
+def debug(*params):
+    if DEBUG_MODE:
+        print("[DBG] %s" % (', '.join(str(x) for x in params),))
+
+
+states = (
+    ('string', 'inclusive'),
+)
 
 # List of basic token names.
 tokens = (
     'NUMBER',
     'ID',
     'SPECIAL',
-    'SEMI'
+    'SEMI',
+    'STRING',
 )
 
 reserved = {
+    'print': 'PRINT',
+    'range': 'RANGE',
     'if': 'IF',
     'then': 'THEN',
     'else': 'ELSE',
     'while': 'WHILE',
     'for': 'FOR',
+    'in': 'IN',
     'break': 'BREAK',
-    'continue': 'CONTINUE'
+    'continue': 'CONTINUE',
 }
 
 # List of single character literals
@@ -47,11 +62,13 @@ specials_mc = {
     '>=': 'GE',
     '<=': 'LE',
     '==': 'EQ',
+    '!=': 'NE',
     '**': 'POW',
 }
 
 precedence = (
-    ('nonassoc', 'LT', 'LE', 'GT', 'GE', 'EQ'),
+    ('nonassoc', 'ELSE'),
+    ('left', 'LT', 'LE', 'GT', 'GE', 'EQ', 'NE'),
     ('left', 'ADD', 'REM'),
     ('left', 'MUL', 'DIV'),
     ('left', 'POW'),
@@ -64,6 +81,11 @@ specials_sc_re = '[' + re.escape(''.join(specials_sc.keys())) + ']'
 specials_mc_re = '(' + '|'.join(re.escape(x) for x in specials_mc.keys()) + ')'
 
 
+def t_COMMENT(t):
+    r'\#.*'
+    pass
+
+
 def t_ID(t):
     r'[a-zA-Z_][a-zA-Z_0-9]*'
     # Check for reserved words
@@ -73,7 +95,7 @@ def t_ID(t):
 
 # A regular expression rule with some action code
 def t_NUMBER(t):
-    r'\d+'
+    r'(0|[1-9]\d*)'
     t.value = int(t.value)
     return t
 
@@ -87,15 +109,28 @@ def t_SEMI(t):
     return t
 
 
-def t_COMMENT(t):
-    r'\#.*'
-    pass
+# Match the first {. Enter ccode state.
+def t_STRING(t):
+    r'[\"\']'
+    t.lexer.begin('string')
+    t.lexer.str_start = t.lexer.lexpos
 
 
-def t_POW(t):
-    r'\*\*'
-    # Check for reserved words
-    t.type = 'POW'
+def t_string_chars(t):
+    r'[^"\'\n]+'
+
+
+def t_string_newline(t):
+    r'\n+'
+    print("Incorrectly terminated string %s" % t.lexer.lexdata[t.lexer.str_start:t.lexer.lexpos - 1])
+    t.lexer.skip(1)
+
+
+def t_string_end(t):
+    r'[\"\']'
+    t.type = 'STRING'
+    t.value = t.lexer.lexdata[t.lexer.str_start:t.lexer.lexpos - 1]
+    t.lexer.begin('INITIAL')
     return t
 
 
@@ -126,37 +161,70 @@ lexer = lex.lex()
 variables = {}
 
 
-def p_statement_list(p):
-    '''stmt_list : stmt_list statement SEMI
-                 | SEMI
-                 | empty
+def p_program(p):
+    '''program : program statement
+               | empty
     '''
     if len(p) > 2:
-        print('LIST', p[1], p[2])
         p[0] = p[2]
 
 
-def p_statement(p):
-    '''statement : expression
-                 | ID ASSIGN expression
+def p_statement_none(p):
+    'statement : SEMI'
+    pass
+
+
+def p_statement_expr(p):
+    'statement : expression SEMI'
+    p[0] = p[1]
+
+
+def p_statement_print(p):
+    'statement : PRINT LPAREN expr_list RPAREN'
+    debug('PRINT', p[3])
+    print(' '.join(str(x) for x in p[3]))
+    p[0] = None
+
+
+def p_expression_list(p):
+    '''expr_list : expr_list COMMA expression
+                 | expression
     '''
-    if len(p) > 2:
-        print('ASSIGN', p[1], p[3])
-        variables[p[1]] = p[3]
-        p[0] = p[3]
+    debug('EXPR_LIST', p[1:])
+    if len(p) <= 3:
+        p[0] = [p[1]]
     else:
-        p[0] = p[1]
+        p[0] = p[1] + [p[3]]
+
+
+def p_statement_assign(p):
+    'statement : ID ASSIGN expression SEMI'
+    debug('ASSIGN', p[1], p[3])
+    variables[p[1]] = p[3]
+    p[0] = p[3]
+
+
+def p_expression_var(p):
+    'expression : ID'
+    debug('VAR', p[1])
+    p[0] = variables.get(p[1], 0)
 
 
 def p_expression_num(p):
     'expression : NUMBER'
-    print('NUMBER', p[1])
+    debug('NUMBER', p[1])
     p[0] = int(p[1])
+
+
+def p_expression_string(p):
+    'expression : STRING'
+    debug('STRING', p[1])
+    p[0] = p[1]
 
 
 def p_expression_uminus(p):
     'expression : REM expression %prec UMINUS'
-    print('NEGATE', p[2])
+    debug('NEGATE', p[2])
     p[0] = -p[2]
 
 
@@ -167,12 +235,12 @@ def p_expression_count(p):
                    | expression DIV expression
                    | expression POW expression
     '''
-    print('COUNT', p[1], p[2], p[3])
+    debug('COUNT', p[1], p[2], p[3])
     p[0] = {
-        '+': lambda x: x[1] + x[3],
-        '-': lambda x: x[1] - x[3],
-        '*': lambda x: x[1] * x[3],
-        '/': lambda x: x[1] / x[3],
+        '+':  lambda x: x[1] + x[3],
+        '-':  lambda x: x[1] - x[3],
+        '*':  lambda x: x[1] * x[3],
+        '/':  lambda x: x[1] / x[3],
         '**': lambda x: x[1] ** x[3],
     }[p[2]](p)
 
@@ -183,27 +251,23 @@ def p_expression_logic(p):
                    | expression LT expression
                    | expression LE expression
                    | expression EQ expression
+                   | expression NE expression
     '''
-    print('LOGIC', p[1], p[2], p[3])
+    debug('LOGIC', p[1], p[2], p[3])
     p[0] = {
         '>':  lambda x: x[1] > x[3],
         '>=': lambda x: x[1] >= x[3],
         '<':  lambda x: x[1] < x[3],
         '<=': lambda x: x[1] <= x[3],
         '==': lambda x: x[1] == x[3],
+        '!=': lambda x: x[1] != x[3],
     }[p[2]](p)
 
 
 def p_expression_parens(p):
     'expression : LPAREN expression RPAREN'
-    print('PARENS', p[2])
+    debug('PARENS', p[2])
     p[0] = p[2]
-
-
-def p_expression_var(p):
-    'expression : ID'
-    print('VAR', p[1])
-    p[0] = variables.get(p[1], 0)
 
 
 # Error rule for syntax errors
@@ -228,16 +292,12 @@ data = '''
 x = 2 ** 8 + (-1 - 6) * 8
 x = x + 5
 t1 = x > 5
-t2 = (x < 300)
-t3 = (x >= 200)
-t4 = (x >= 205)
-t5 = (x >= 210)
-t6 = (x <= 205)
-t7 = (x <= 210)
-t8 = (x <= 200)
-t9 = (x == 205)
-x + 10
+print(x + 5)
+print(x, 5, x+5, 100)
+print("Test", 'def', 1)
 '''
+# if t1:
+#     print(1)
 
 
 # Now parse the whole thing

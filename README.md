@@ -9,4 +9,4 @@ Examples on how to construct compilers using lex, yacc and Pyhon Lex-Yacc
     * [compiler](src/calc3/calc3b.c) (to abstract ASM)
     * [grapher](src/calc3/calc3g.c) which builds a syntax tree
 
-* [lex_example.py](src/ply/lex_example.py) - simple python expressions interpreter using Python Lex-Yacc
+* [lex_example.py](src/jfk/main.py) - simple python expressions interpreter using Python Lex-Yacc

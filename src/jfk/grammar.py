@@ -73,7 +73,7 @@ def p_statement_cond_postfix_else(p):
 
 
 def p_statement_cond_postfix_assign(p):
-    'line_statement : ID ASSIGN cond_assign_expr IF condition_list ELSE cond_assign_expr SEMI'
+    'line_statement : ID ASSIGN expression IF condition_list ELSE expression SEMI'
     debug("PSTFX IF-ELSE-ASSIGN", p[1:])
     p[0] = mAST(action='assign', params=[
         p[1], mAST(action='condition', params=[p[5], p[3], p[7]])
@@ -117,11 +117,6 @@ def p_condition_parens(p):
     p[0] = p[2]
 
 
-def p_expression_cond_assign(p):
-    'cond_assign_expr : expression'
-    p[0] = p[1]
-
-
 def p_expression_bool_true(p):
     'expression : TRUE'
     p[0] = True
@@ -157,18 +152,19 @@ def p_expression_uminus(p):
 
 
 def p_expression_binop(p):
-    '''expression  : expression ADD expression
-                   | expression REM expression
-                   | expression MUL expression
-                   | expression DIV expression
-                   | expression MOD expression
-                   | expression POW expression
-                   | expression GT expression
-                   | expression GE expression
-                   | expression LT expression
-                   | expression LE expression
-                   | expression EQ expression
-                   | expression NE expression
+    '''
+    expression : expression ADD expression
+               | expression REM expression
+               | expression MUL expression
+               | expression DIV expression
+               | expression MOD expression
+               | expression POW expression
+               | expression GT expression
+               | expression GE expression
+               | expression LT expression
+               | expression LE expression
+               | expression EQ expression
+               | expression NE expression
     '''
     debug('BINOP', p[1:])
     p[0] = mAST(action='binop', params=p[1:])

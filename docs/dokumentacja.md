@@ -167,7 +167,26 @@ for i in range(1, 5): print("i =", i * 2)
 
 ## Opis typizacji tłumaczonego języka
 
+Dostępne typy danych są w pełni zgodne z typami obsługiwanymi przez język Python (z kilkoma różnicami):
+* liczby obejmują tylko liczby całkowite (nie mogą się zaczynać od 0)
+* ciągi znaków pozwalają na przechowanie dowolnych znaków z wyłączeniem znaku nowej linii oraz aktualnie użytych ograniczników
+* nazwy zmiennych mogą składać się z dużych i małych liter oraz cyfr (ale nie mogą się zaczynać od cyfr)
+* stałe wartości logiczne: prawda i fałsz
+
 ## Napotkane problemy
+
+* W pierwszym podejściu w czasie analizy gramatyki określone akcje (porównanie, przypisanie, wypisanie itp.) wykonywane były natychmiast. Podejście to okazało się jednak niewystarczające w momencie wprowadzenia wyrażeń warunkowych (obie gałęzie wykonywały się w trakcie analizy). Z tego powodu powstała [prosta implementacja drzwewa składniowego](../src/jfk/mAST.py) pozwalająca na odłożenie w czasie wykonania do momentu decyzji, które instrukcje faktycznie mają zostać wykonane (ułatwiło to również implementację pętli).
+
+* W miarę rozbudowy gramatyki, trzymanie wszystkiego w jednym pliku stawało się coraz mniej wygodne, stąd podjęta została decyzja o rozbiciu programu na osobne pliki zawierające:
+    * [stałe tokenowe](../src/jfk/tokenizer.py)
+    * [gramatykę](../src/jfk/grammar.py)
+    * [prostą implementację drzewa składniowego](../src/jfk/mAST.py)
+    * [kod przykładowy](../src/jfk/input_code.py)
+    * [główny program wykonawczy](../src/jfk/main.py)
+
+* W związku z dość prostym podejściem do tworzenia gramatyki nie udało się rozwiązać trzech konfliktów typu "shift/reduce" o których informuje PLY. Nie jest to jednak duży problem, ponieważ ich domyślne rozwiązanie proponowane przez PLY jest poprawne.
+
+* Obsługa wcięć w kodzie celem definiowania bloków kodu okazała się zadaniem o dużo większym stopniu trudności niż to wynikało z pierwszych eksperymentów przy testowaniu obsługi instrukcji warunkowych. Z tego względu awaryjnie obsługa wyrażeń warunkowych i pętli ograniczona została do instrukcji jednoliniowych. 
 
 ## Bibliografia:
 * [Dokumentacja PLY](http://www.dabeaz.com/ply/ply.html)

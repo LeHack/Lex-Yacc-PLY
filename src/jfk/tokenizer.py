@@ -23,6 +23,8 @@ reserved = {
     'in':    'IN',
     'and':   'AND',
     'or':    'OR',
+    'true':  'TRUE',
+    'false': 'FALSE',
 }
 
 # List of single character literals
@@ -52,8 +54,6 @@ specials_mc = {
 
 precedence = (
     ('nonassoc', 'IFX'),
-    ('nonassoc', 'ELSE'),
-    ('left', 'AND', 'OR'),
     ('left', 'LT', 'LE', 'GT', 'GE', 'EQ', 'NE'),
     ('left', 'REM', 'ADD'),
     ('left', 'MUL', 'DIV', 'MOD'),
@@ -75,7 +75,7 @@ def t_COMMENT(t):
 def t_ID(t):
     r'[a-zA-Z_][a-zA-Z_0-9]*'
     # Check for reserved words
-    t.type = reserved.get(t.value, 'ID')
+    t.type = reserved.get(t.value.lower(), 'ID')
     return t
 
 

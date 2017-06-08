@@ -1,26 +1,31 @@
-from .mAST import mAST
 from jfk import tokenizer
+from jfk.mAST import mAST
 DEBUG_MODE = False
 
 # import some required globals from tokenizer
 tokens = tokenizer.tokens
 precedence = tokenizer.precedence
+astList = []
 
 
 def p_program(p):
     'program : function'
     debug('PROGRAM', p[1])
-    p[0] = p[1]
+    p[0] = astList
 
 
 def p_function(p):
-    '''function : function statement
-                | function line_statement
-                | empty
     '''
-    debug('FUNCTION', p[1:])
+    function : function statement SEMI
+             | function line_statement
+             | empty
+    '''
     if len(p) > 2:
-        p[0] = mAST.resolve(p[2])
+        debug('FUNCTION', str(p[2]))
+        astList.append(p[2])
+        p[0] = p[2]
+    else:
+        debug('FUNCTION', p[1:])
 
 
 def p_statement_none(p):
@@ -41,7 +46,10 @@ def p_statement_print(p):
 
 
 def p_statement_assign(p):
-    'line_statement : ID ASSIGN expression SEMI'
+    '''
+    line_statement : ID ASSIGN expression SEMI
+                   | ID ASSIGN condition_list SEMI
+    '''
     debug('ASSIGN', p[1], p[3])
     p[0] = mAST(action='assign', params=[p[1], p[3]])
 
@@ -65,7 +73,7 @@ def p_statement_cond_postfix_else(p):
 
 
 def p_statement_cond_postfix_assign(p):
-    'line_statement : ID ASSIGN expression IF condition_list ELSE expression SEMI'
+    'line_statement : ID ASSIGN cond_assign_expr IF condition_list ELSE cond_assign_expr SEMI'
     debug("PSTFX IF-ELSE-ASSIGN", p[1:])
     p[0] = mAST(action='assign', params=[
         p[1], mAST(action='condition', params=[p[5], p[3], p[7]])
@@ -79,8 +87,9 @@ def p_statement_cond(p):
 
 
 def p_expression_list(p):
-    '''expr_list : expression
-                 | expr_list COMMA expression
+    '''
+    expr_list : expression
+              | expr_list COMMA expression
     '''
     debug('EXPR_LIST', p[1:])
     if len(p) <= 3:
@@ -90,22 +99,37 @@ def p_expression_list(p):
 
 
 def p_condition_list(p):
-    '''condition_list : expression
-                      | condition_list logop expression
     '''
-    debug('CONDITION', p[1])
+    condition_list : expression
+                   | condition_list AND expression
+                   | condition_list OR expression
+    '''
+    debug('CONDITION', p[1:])
     if len(p) > 2:
         p[0] = mAST(action='logop', params=p[1:])
     else:
         p[0] = p[1]
 
 
-def p_condition_op(p):
-    '''logop : AND
-             | OR
-    '''
-    debug('LOGOP', p[1])
-    p[0] = p[1].upper()
+def p_condition_parens(p):
+    'condition_list : LPAREN condition_list RPAREN'
+    debug('COND_PARENS', p[2])
+    p[0] = p[2]
+
+
+def p_expression_cond_assign(p):
+    'cond_assign_expr : expression'
+    p[0] = p[1]
+
+
+def p_expression_bool_true(p):
+    'expression : TRUE'
+    p[0] = True
+
+
+def p_expression_bool_false(p):
+    'expression : FALSE'
+    p[0] = False
 
 
 def p_expression_var(p):

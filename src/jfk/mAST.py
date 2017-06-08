@@ -1,5 +1,5 @@
 DEBUG_MODE = False
-variables = {}
+symbols = {}
 
 
 def debug(*params):
@@ -20,12 +20,12 @@ class mAST:
         if self.action == 'print':
             print(' '.join(str(mAST.resolve(x)) for x in list(self.params)))
         elif self.action == 'assign':
-            variables[self.params[0]] = mAST.resolve(self.params[1])
+            result = symbols[self.params[0]] = mAST.resolve(self.params[1])
         elif self.action == 'get':
-            result = variables.get(self.params[0], 0)
+            result = symbols.get(self.params[0], 0)
         elif self.action == 'loop':
             for i in self.params[1]:
-                variables[self.params[0]] = i
+                symbols[self.params[0]] = i
                 self.params[2].execute()
         elif self.action == 'condition':
             if mAST.resolve(self.params[0]):
@@ -36,17 +36,19 @@ class mAST:
             params = list(self.params)
             result = mAST.resolve(params.pop())
             while len(params) >= 2:
-                op   = mAST.resolve(params.pop())
+                prev = result
+                op   = mAST.resolve(params.pop()).upper()
                 comp = mAST.resolve(params.pop())
-                debug("[LOGOP]", result, op, comp)
+                debug("[LOGOP]", prev, op, comp)
                 result = {
                     'AND': lambda a, b: (a and b),
                     'OR':  lambda a, b: (a or b),
-                }[op](result, comp)
+                }[op](prev, comp)
 
         elif self.action == 'binop':
             a = mAST.resolve(self.params[0])
             b = mAST.resolve(self.params[2])
+            op = self.params[1]
             result = {
                 '+':  lambda a, b: a + b,
                 '-':  lambda a, b: a - b,
@@ -60,7 +62,8 @@ class mAST:
                 '<=': lambda a, b: (a <= b),
                 '==': lambda a, b: (a == b),
                 '!=': lambda a, b: (a != b),
-            }[self.params[1]](a, b)
+            }[op](a, b)
+            debug("[BINOP]", a, op, b, result)
         else:
             print("Error, unsupported operation:", str(self))
 
@@ -68,11 +71,11 @@ class mAST:
         return result
 
     def __str__(self):
-        return '[DelAct] %s %s' % (self.action, ';'.join(str(x) for x in self.params))
+        return '[AST] %s %s' % (self.action, ';'.join(str(x) for x in self.params))
 
     @staticmethod
-    def isADelayedAction(x):
-        return (x and type(x) == mAST)
+    def isADelayedAction(x=None):
+        return ('x' is not None and isinstance(x, mAST))
 
     @staticmethod
     def resolve(x):

@@ -1,6 +1,7 @@
 import ply.lex as lex
 import ply.yacc as yacc
 from jfk import tokenizer, grammar
+from jfk.mAST import mAST
 
 # Build the lexer
 lexer = lex.lex(module=tokenizer)
@@ -14,4 +15,5 @@ data = f.read()
 f.close()
 
 # Now parse the whole thing
-print('Statement value:', parser.parse(data))
+for x in parser.parse(data):
+    mAST.resolve(x)

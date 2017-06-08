@@ -10,3 +10,5 @@ Examples on how to construct compilers using lex, yacc and Pyhon Lex-Yacc
     * [grapher](src/calc3/calc3g.c) which builds a syntax tree
 
 * [lex_example.py](src/jfk/main.py) - simple python expressions interpreter using Python Lex-Yacc
+
+[Dokumentacja projektu](docs/dokumentacja.md)

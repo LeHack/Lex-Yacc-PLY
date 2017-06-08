@@ -14,7 +14,7 @@ print(x + 5)
 print('x =', x)
 print('x + 5 =', x + 5)
 print('x % 100 =', x % 100)
-print('x == 205 is', x == 205, '; x != 210 is', x != 210, '; x < 5 is', t1)
+print("x == 205 is", x == 205, '; x != 210 is', x != 210, "; x < 5 is", t1)
 z = "Var-test"
 print("Test", 'def', 1, t1, t2, z)
 

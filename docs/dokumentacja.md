@@ -114,7 +114,7 @@ Składnia:
 
 ## Przykłady użycia
 
-[plik z przykładowym kodem](src/jfk/input_code.py)
+[plik z przykładowym kodem](../src/jfk/input_code.py)
 
 1. Wyrażenia matematyczne:  
 ```python

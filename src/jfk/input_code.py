@@ -31,3 +31,15 @@ print("x is LE 15") if x <= 15 else print("or not")
 
 # loop
 for i in range(1, 5): print("i =", i * 2)
+j = 0
+for i in range(0, 15): j = j + 1
+print("j =", j)
+
+# nested loop
+k = 0
+for i in range(0, 5): for j in range(0, 5): k = k + 1
+print("k =", k)
+
+# Python doesn't allow for single line nested-loops 
+# for i in range(0, 5):
+#    for j in range(0, 5): k = k + 1

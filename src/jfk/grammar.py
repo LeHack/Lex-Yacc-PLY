@@ -66,6 +66,12 @@ def p_statement_for(p):
     p[0] = mAST(action='loop', params=[p[2], p[4], p[6]])
 
 
+def p_statement_for_line(p):
+    'line_statement : FOR ID IN range COLON line_statement'
+    debug('FOR', p[1:])
+    p[0] = mAST(action='loop', params=[p[2], p[4], p[6]])
+
+
 def p_statement_cond_postfix_else(p):
     'line_statement : statement IF condition_list ELSE statement SEMI'
     debug("PSTFX IF-ELSE", p[1:])

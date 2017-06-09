@@ -8,6 +8,17 @@
 
 Autor: Łukasz Hejnak
 
+## Spis Treści
+1. [Gramatyka](#gramatyka)
+2. [Zdefiniowane stałe słownikowe](#zdefiniowane-stałe-słownikowe)
+3. [Przykłady użycia](#przykłady-użycia)
+4. [Opis typizacji tłumaczonego języka](#opis-typizacji-tłumaczonego-języka)
+5. [Napotkane problemy](#napotkane-problemy)
+6. [Bibliografia](#bibliografia)
+
+
+
+
 ## Gramatyka
 
 Reguły grupujące:  

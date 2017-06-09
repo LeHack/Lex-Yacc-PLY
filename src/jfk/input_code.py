@@ -37,9 +37,6 @@ print("j =", j)
 
 # nested loop
 k = 0
-for i in range(0, 5): for j in range(0, 5): k = k + 1
+for i in range(0, 5):
+    for j in range(0, 5): k = k + 1
 print("k =", k)
-
-# Python doesn't allow for single line nested-loops 
-# for i in range(0, 5):
-#    for j in range(0, 5): k = k + 1

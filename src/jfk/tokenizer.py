@@ -53,7 +53,7 @@ specials_mc = {
 }
 
 precedence = (
-    ('nonassoc', 'IFX'),
+    ('nonassoc', 'IFX', 'SEMI', 'FOR'),
     ('left', 'LT', 'LE', 'GT', 'GE', 'EQ', 'NE'),
     ('left', 'REM', 'ADD'),
     ('left', 'MUL', 'DIV', 'MOD'),

@@ -9,12 +9,20 @@
 Autor: Łukasz Hejnak
 
 ## Spis Treści
-1. [Gramatyka](#gramatyka)
-2. [Zdefiniowane stałe słownikowe](#zdefiniowane-stałe-słownikowe)
-3. [Przykłady użycia](#przykłady-użycia)
-4. [Opis typizacji tłumaczonego języka](#opis-typizacji-tłumaczonego-języka)
-5. [Napotkane problemy](#napotkane-problemy)
-6. [Bibliografia](#bibliografia)
+* [Gramatyka](#gramatyka)
+* [Zdefiniowane stałe słownikowe](#zdefiniowane-stałe-słownikowe)
+* [Przykłady użycia](#przykłady-użycia)
+    * [Wyrażenia matematyczne](#wyrażenia-matematyczne)
+    * [Używanie zmiennych](#używanie-zmiennych)
+    * [Wyrażenia logiczne](#wyrażenia-logiczne)
+    * [Wypisywanie wartości zmiennych oraz ciągów znaków](#wypisywanie-wartości-zmiennych-oraz-ciągów-znaków)
+    * [Warunkowe wypisywanie danych](#warunkowe-wypisywanie-danych)
+    * [Wyrażenia warunkowe w formie _"postfix"_](#wyrażenia-warunkowe-w-formie-postfix)
+    * [Pętle](#pętle)
+    * [Zagnieżdżone pętle](#zagnieżdżone-pętle)
+* [Opis typizacji tłumaczonego języka](#opis-typizacji-tłumaczonego-języka)
+* [Napotkane problemy](#napotkane-problemy)
+* [Bibliografia](#bibliografia)
 
 
 
@@ -39,6 +47,8 @@ Grupy wyrażeń wolnostojących:
     * statement IF condition_list ELSE statement SEMI
     * IF condition_list COLON statement SEMI %prec IFX
     * FOR ID IN range COLON statement SEMI
+    * FOR ID IN range COLON line_statement
+    * FOR ID IN range COLON SEMI line_statement
 
 Grupy wyrażeń powiązanych:
 * statement :
@@ -127,24 +137,24 @@ Składnia:
 
 [plik z przykładowym kodem](../src/jfk/input_code.py)
 
-1. Wyrażenia matematyczne:  
+#### Wyrażenia matematyczne
 ```python
 x = 2 ** 8 + (-1 - 6) * 8
 ```
 
-2. Używanie zmiennych:  
+#### Używanie zmiennych
 ```python
 y = 2  
 x = x + 5 * y
 ```
 
-3. Wyrażenia logiczne:  
+#### Wyrażenia logiczne
 ```python
 t1 = x < 5
 t2 = (x >= 200 and True)
 ```
 
-4. Wypisywanie wartości zmiennych oraz ciągów znaków:  
+#### Wypisywanie wartości zmiennych oraz ciągów znaków
 ```python
 print(x + 5)
 print('x =', x)
@@ -155,7 +165,7 @@ z = "Var-test"
 print("Test", 'def', 1, t1, t2, z)
 ```
 
-5. Warunkowe wypisywanie danych:
+#### Warunkowe wypisywanie danych
 ```python
 if t1: print(t1)
 if x > 10: print("Here you see x")
@@ -164,20 +174,25 @@ if x == 10 or x > 100: print("And here you see it again")
 if x == 10 and x > 100: print("And here you don't see it again")
 ```
 
-6. Wyrażenia warunkowe w formie _"postfix"_:
+#### Wyrażenia warunkowe w formie _"postfix"_
 ```python
 x = 15 if x > 200 else 200
 print("x is LE 15") if x <= 15 else print("or not")
 ```
 
-7. Pętle:
+#### Pętle
 ```python
 for i in range(1, 5): print("i =", i * 2)
 j = 0
 for i in range(0, 15): j = j + 1
 print("j =", j)
+```
+
+#### Zagnieżdżone pętle
+```python
 k = 0
-for i in range(0, 5): for j in range(0, 5): k = k + 1
+for i in range(0, 5):
+    for j in range(0, 5): k = k + 1
 print("k =", k)
 ```
 

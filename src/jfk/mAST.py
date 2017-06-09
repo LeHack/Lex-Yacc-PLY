@@ -26,7 +26,7 @@ class mAST:
         elif self.action == 'loop':
             for i in self.params[1]:
                 symbols[self.params[0]] = i
-                self.params[2].execute()
+                mAST.resolve(self.params[2])
         elif self.action == 'condition':
             if mAST.resolve(self.params[0]):
                 result = mAST.resolve(self.params[1])

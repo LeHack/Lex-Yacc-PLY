@@ -67,9 +67,15 @@ def p_statement_for(p):
 
 
 def p_statement_for_line(p):
-    'line_statement : FOR ID IN range COLON line_statement'
+    '''
+    line_statement : FOR ID IN range COLON line_statement
+                   | FOR ID IN range COLON SEMI line_statement
+    '''
     debug('FOR', p[1:])
-    p[0] = mAST(action='loop', params=[p[2], p[4], p[6]])
+    if len(p) < 8:
+        p[0] = mAST(action='loop', params=[p[2], p[4], p[6]])
+    else:
+        p[0] = mAST(action='loop', params=[p[2], p[4], p[7]])
 
 
 def p_statement_cond_postfix_else(p):

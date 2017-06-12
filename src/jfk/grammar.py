@@ -45,15 +45,6 @@ def p_statement_print(p):
     p[0] = mAST(action='print', params=p[3])
 
 
-def p_statement_assign(p):
-    '''
-    line_statement : ID ASSIGN expression SEMI
-                   | ID ASSIGN condition_list SEMI
-    '''
-    debug('ASSIGN', p[1], p[3])
-    p[0] = mAST(action='assign', params=[p[1], p[3]])
-
-
 def p_range(p):
     'range : RANGE LPAREN expr_list RPAREN'
     debug('RANGE', p[3])
@@ -66,10 +57,15 @@ def p_statement_for(p):
     p[0] = mAST(action='loop', params=[p[2], p[4], p[6]])
 
 
+def p_for_stmt(p):
+    'for_line_stmt : SEMI line_statement %prec LOOP_INSTR'
+    p[0] = p[2]
+
+
 def p_statement_for_line(p):
     '''
     line_statement : FOR ID IN range COLON line_statement
-                   | FOR ID IN range COLON SEMI line_statement
+                   | FOR ID IN range COLON for_line_stmt %prec LOOP_INSTR
     '''
     debug('FOR', p[1:])
     if len(p) < 8:
@@ -84,18 +80,38 @@ def p_statement_cond_postfix_else(p):
     p[0] = mAST(action='condition', params=[p[3], p[1], p[5]])
 
 
+def p_ifassign(p):
+    'if_assign : ID ASSIGN expression'
+    p[0] = [p[1], p[3]]
+
+
 def p_statement_cond_postfix_assign(p):
-    'line_statement : ID ASSIGN expression IF condition_list ELSE expression SEMI'
+    'line_statement : if_assign IF condition_list ELSE expression SEMI'
     debug("PSTFX IF-ELSE-ASSIGN", p[1:])
     p[0] = mAST(action='assign', params=[
-        p[1], mAST(action='condition', params=[p[5], p[3], p[7]])
+        p[1][0], mAST(action='condition', params=[p[3], p[1][1], p[5]])
     ])
 
 
 def p_statement_cond(p):
-    'line_statement : IF condition_list COLON statement SEMI %prec IFX'
-    debug("IF", str(p[2]), str(p[4]))
-    p[0] = mAST(action='condition', params=[p[2], p[4]])
+    '''
+    line_statement : IF condition_list COLON statement SEMI %prec IFX
+                   | IF condition_list COLON SEMI statement SEMI %prec IFX
+    '''
+    debug("IF", [str(x) for x in p[1:]])
+    if len(p) < 7:
+        p[0] = mAST(action='condition', params=[p[2], p[4]])
+    else:
+        p[0] = mAST(action='condition', params=[p[2], p[5]])
+
+
+def p_statement_assign(p):
+    '''
+    line_statement : ID ASSIGN expression SEMI
+                   | ID ASSIGN condition_list SEMI
+    '''
+    debug('ASSIGN', p[1], p[3])
+    p[0] = mAST(action='assign', params=[p[1], p[3]])
 
 
 def p_expression_list(p):
@@ -112,7 +128,7 @@ def p_expression_list(p):
 
 def p_condition_list(p):
     '''
-    condition_list : expression
+    condition_list : expression %prec CONDLIST
                    | condition_list AND expression
                    | condition_list OR expression
     '''

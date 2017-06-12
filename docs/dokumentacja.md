@@ -43,12 +43,13 @@ Grupy wyrażeń wolnostojących:
     * expression SEMI
     * ID ASSIGN expression SEMI
     * ID ASSIGN condition_list SEMI
-    * ID ASSIGN expression IF condition_list ELSE expression SEMI
+    * if_assign IF condition_list ELSE expression SEMI
     * statement IF condition_list ELSE statement SEMI
     * IF condition_list COLON statement SEMI %prec IFX
+    * IF condition_list COLON SEMI statement SEMI %prec IFX
     * FOR ID IN range COLON statement SEMI
     * FOR ID IN range COLON line_statement
-    * FOR ID IN range COLON SEMI line_statement
+    * FOR ID IN range COLON for_line_stmt %prec LOOP_INSTR
 
 Grupy wyrażeń powiązanych:
 * statement :
@@ -61,10 +62,14 @@ Wyrażenia pomocnicze:
     * expression
     * expr_list COMMA expression
 * condition_list :
-    * expression
+    * expression %prec CONDLIST
     * condition_list AND expression
     * condition_list OR expression
     * LPAREN condition_list RPAREN
+* if_assign :
+    * ID ASSIGN expression
+* for_line_stmt :
+    * SEMI line_statement %prec LOOP_INSTR
 * empty :
 
 Wyrażenia bazowe:
@@ -216,7 +221,8 @@ Dostępne typy danych są w pełni zgodne z typami obsługiwanymi przez język P
     * [kod przykładowy](../src/jfk/input_code.py)
     * [główny program wykonawczy](../src/jfk/main.py)
 
-* W związku z dość prostym podejściem do tworzenia gramatyki nie udało się rozwiązać trzech konfliktów typu "shift/reduce" o których informuje PLY. Nie jest to jednak duży problem, ponieważ ich domyślne rozwiązanie proponowane przez PLY jest poprawne.
+* ~~W związku z dość prostym podejściem do tworzenia gramatyki nie udało się rozwiązać trzech konfliktów typu "shift/reduce" o których informuje PLY. Nie jest to jednak duży problem, ponieważ ich domyślne rozwiązanie proponowane przez PLY jest poprawne.~~  
+Problem został rozwiązany poprzez dodanie reguły _if\_assign_.
 
 * Obsługa wcięć w kodzie celem definiowania bloków kodu okazała się zadaniem o dużo większym stopniu trudności niż to wynikało z pierwszych eksperymentów przy testowaniu obsługi instrukcji warunkowych. Z tego względu awaryjnie obsługa wyrażeń warunkowych i pętli ograniczona została do instrukcji jednoliniowych. 
 

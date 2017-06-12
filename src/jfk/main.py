@@ -7,7 +7,7 @@ from jfk.mAST import mAST
 lexer = lex.lex(module=tokenizer)
 
 # Build the parser
-parser = yacc.yacc(module=grammar, write_tables=False)
+parser = yacc.yacc(module=grammar)
 
 # Test it out
 f = open('input_code.py', 'r')

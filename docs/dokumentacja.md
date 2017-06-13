@@ -230,3 +230,9 @@ Problem został rozwiązany poprzez dodanie reguły _if\_assign_.
 * [Dokumentacja PLY](http://www.dabeaz.com/ply/ply.html)
 * [Lex & Yacc Tutorial (Tom Niemann)](http://epaperpress.com/lexandyacc/)
 * [Stack Overflow](https://stackoverflow.com/questions/tagged/lex+yacc+ply)
+    * [https://stackoverflow.com/questions/11456495/ply-yacc-parsing-if-else-if-else-nested-statements](https://stackoverflow.com/questions/11456495/ply-yacc-parsing-if-else-if-else-nested-statements)
+    * [https://stackoverflow.com/questions/34445707/ply-yacc-pythonic-syntax-for-accumulating-list-of-comma-separated-values](https://stackoverflow.com/questions/34445707/ply-yacc-pythonic-syntax-for-accumulating-list-of-comma-separated-values)
+    * [https://stackoverflow.com/questions/18046579/reporting-parse-errors-from-ply-to-caller-of-parser](https://stackoverflow.com/questions/18046579/reporting-parse-errors-from-ply-to-caller-of-parser)
+    * [https://stackoverflow.com/questions/5022129/ply-lex-parsing-problem](https://stackoverflow.com/questions/5022129/ply-lex-parsing-problem)
+    * [https://stackoverflow.com/questions/33979652/multiline-ply-parser](https://stackoverflow.com/questions/33979652/multiline-ply-parser)
+
